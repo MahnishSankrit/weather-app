@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>weather app</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/main.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="weather1.css" />
+</head>
+
+<body class="relative text-black bg-slate-900 flex flex-col justify-center items-center  min-h-screen w-screen p-5 ">
+  <div class="flex flex-col md:flex-row gap-6 w-full h-full ">
+    <div class="flex-1 flex justify-center items-start">
+      <div id="calendar-container"
+        class="text-white max-w-[600px] bg-white/10 rounded-xl p-10 shadow-[0_0_20px_rgba(0,0,0,0.3)] w-full">
+        <h2 class="text-white text-xl font-bold text-center mb-10">📅 Weather Forecast Calendar</h2>
+        <div id="controls" class="flex justify-center gap-4 mb-8">
+          <button onclick="changeMonth(-1)"
+            class="bg-[#00c6ff] hover:bg-white text-white px-4 py-2 rounded font-bold">⬅ Previous</button>
+          <button onclick="changeMonth(1)"
+            class="bg-[#00c6ff] hover:bg-white text-white px-4 py-2 rounded font-bold">Next ➡</button>
+        </div>
+        <div id="calendar" class="w-full border-collapse text-center h-full flex flex-row justify-center gap-5"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Weather App Content -->
+    <div class="flex-1 flex flex-col items-center gap-5">
+
+      <!-- Search bar -->
+      <div class="flex items-center border-2 rounded-2xl bg-white px-3 py-2 w-80">
+        <input id="searchInput" type="text" placeholder="Search..." class="outline-none flex-1 bg-white text-black" />
+        <button id="searchBtn">
+          <i class="fa-solid fa-magnifying-glass text-gray-500 ml-2"></i>
+        </button>
+      </div>
+
+      <!-- Weather box -->
+      <div id="weatherBox" class="bg-white p-6 rounded-2xl shadow-2xl w-80">
+        <div class="bg-slate-500 text-white p-4 rounded-lg text-center mb-4">
+          <h2 class="text-2xl font-bold">Weather</h2>
+          <p class="text-lg">Temperature</p>
+        </div>
+      </div>
+
+      <!-- Weather button section -->
+      <div class="bg-sky-300 flex flex-col justify-center items-center w-80 p-5 border-2 rounded-2xl shadow-2xl">
+        <h1>Click to know your location weather</h1>
+        <div class="my-2 text-2xl">
+          <i class="fa-solid fa-cloud"></i> /
+          <i class="fa-solid fa-bolt"></i>
+        </div>
+        <button id="geoWeatherBtn" class="bg-sky-800 hover:bg-slate-400 rounded-2xl p-3 mt-2 text-white">Weather</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="weather.js"></script>
+</body>
+
+</html>
