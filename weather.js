@@ -1,4 +1,4 @@
-const apiKey = 'df8a05c526e283832f1dfe63498510cb';
+const apiKey = '898910c4440a2a972464c27c2c78bd04';
 let currentDate = new Date();
 
 function getMockWeatherData(daysInMonth) {
