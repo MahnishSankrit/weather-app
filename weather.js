@@ -1,6 +1,7 @@
 // ✅ Updated API key
 const apiKey = 'e51b0bd89d04301611065df990a6c28f';
 let currentDate = new Date();
+let lastCoords = null; // store last coords for month navigation
 
 // Fallback random data (only if forecast API fails)
 function getMockWeatherData(daysInMonth) {
@@ -90,26 +91,53 @@ function generateCalendar(month, year, weatherData) {
 // Change calendar month
 function changeMonth(offset) {
   currentDate.setMonth(currentDate.getMonth() + offset);
-  fetchDailyForecast(lastCity || "London", 30); // reload forecast for current city
+  if (lastCoords) {
+    fetchDailyForecastByCoords(lastCoords.lat, lastCoords.lon, 30);
+  } else {
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+    generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), getMockWeatherData(daysInMonth));
+  }
 }
 
-// 🌤️ Fetch 7-30 day daily forecast
-async function fetchDailyForecast(city, days = 7) {
-  const url = `https://api.openweathermap.org/data/2.5/forecast/daily?q=${city}&cnt=${days}&appid=${apiKey}&units=metric`;
+// 🌍 Geocoding API → get exact coordinates
+async function fetchCoordinates(city) {
+  const url = `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${apiKey}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data.length) throw new Error("City not found");
+  return { lat: data[0].lat, lon: data[0].lon, name: data[0].name };
+}
+
+// 🌤️ Fetch current weather by coordinates
+async function fetchWeatherByCoordinates(lat, lon, nameOverride = null) {
+  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.cod !== 200) throw new Error(data.message);
+    if (nameOverride) data.name = nameOverride;
+    displayWeather(data);
+  } catch (error) {
+    alert("Error: " + error.message);
+  }
+}
+
+// 📅 Fetch daily forecast by coordinates
+async function fetchDailyForecastByCoords(lat, lon, days = 7) {
+  const url = `https://api.openweathermap.org/data/2.5/forecast/daily?lat=${lat}&lon=${lon}&cnt=${days}&appid=${apiKey}&units=metric`;
   try {
     const res = await fetch(url);
     const data = await res.json();
     if (data.cod !== "200") throw new Error(data.message);
 
     displayDailyForecast(data);
-    lastCity = city; // store for month navigation
+    lastCoords = { lat, lon }; // store for month navigation
   } catch (error) {
     alert("Error fetching forecast: " + error.message);
 
     // fallback: mock weather
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-    const mockWeatherData = getMockWeatherData(daysInMonth);
-    generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), mockWeatherData);
+    generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), getMockWeatherData(daysInMonth));
   }
 }
 
@@ -129,31 +157,6 @@ function displayDailyForecast(data) {
   });
 
   generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), weatherData.slice(0, daysInMonth));
-}
-
-// ✅ City + Geo search still works for current weather
-async function fetchWeatherByCity(city) {
-  const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.cod !== 200) throw new Error(data.message);
-    displayWeather(data);
-  } catch (error) {
-    alert("Error: " + error.message);
-  }
-}
-
-async function fetchWeatherByCoordinates(lat, lon) {
-  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.cod !== 200) throw new Error(data.message);
-    displayWeather(data);
-  } catch (error) {
-    alert("Error: " + error.message);
-  }
 }
 
 // Render current weather info
@@ -177,24 +180,31 @@ function displayWeather(data) {
   `;
 }
 
-// Store last searched city for calendar refresh
-let lastCity = null;
-
 // 🎯 Event listeners
-document.getElementById("searchBtn").addEventListener("click", () => {
+document.getElementById("searchBtn").addEventListener("click", async () => {
   const city = document.getElementById("searchInput").value.trim();
   if (city) {
-    fetchWeatherByCity(city);
-    fetchDailyForecast(city, 30);
+    try {
+      const { lat, lon, name } = await fetchCoordinates(city);
+      fetchWeatherByCoordinates(lat, lon, name);
+      fetchDailyForecastByCoords(lat, lon, 30);
+    } catch (err) {
+      alert(err.message);
+    }
   }
 });
 
-document.getElementById("searchInput").addEventListener("keyup", (e) => {
+document.getElementById("searchInput").addEventListener("keyup", async (e) => {
   if (e.key === "Enter") {
     const city = e.target.value.trim();
     if (city) {
-      fetchWeatherByCity(city);
-      fetchDailyForecast(city, 30);
+      try {
+        const { lat, lon, name } = await fetchCoordinates(city);
+        fetchWeatherByCoordinates(lat, lon, name);
+        fetchDailyForecastByCoords(lat, lon, 30);
+      } catch (err) {
+        alert(err.message);
+      }
     }
   }
 });
@@ -204,7 +214,8 @@ document.getElementById("geoWeatherBtn").addEventListener("click", () => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        fetchWeatherByCoordinates(latitude, longitude);
+        fetchWeatherByCoordinates(latitude, longitude, "Your Location");
+        fetchDailyForecastByCoords(latitude, longitude, 30);
       },
       (err) => alert("Geolocation failed: " + err.message)
     );
@@ -215,5 +226,4 @@ document.getElementById("geoWeatherBtn").addEventListener("click", () => {
 
 // Initial render (fallback mock weather until user searches)
 const daysInCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-const initialWeatherData = getMockWeatherData(daysInCurrentMonth);
-generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), initialWeatherData);
+generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), getMockWeatherData(daysInCurrentMonth));
