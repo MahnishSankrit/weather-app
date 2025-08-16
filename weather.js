@@ -1,11 +1,14 @@
-const apiKey = '898910c4440a2a972464c27c2c78bd04';
+// ✅ Updated API key
+const apiKey = 'e51b0bd89d04301611065df990a6c28f';
 let currentDate = new Date();
 
+// Fallback random data (only if forecast API fails)
 function getMockWeatherData(daysInMonth) {
   const types = ["clear", "partly_cloudy", "cloudy", "showers", "rain", "snow", "thunderstorm", "fog"];
   return Array.from({ length: daysInMonth }, () => types[Math.floor(Math.random() * types.length)]);
 }
 
+// Weather condition → Emoji
 function getWeatherEmoji(condition) {
   const map = {
     "clear": "☀️",
@@ -20,9 +23,10 @@ function getWeatherEmoji(condition) {
   return map[condition] || "🌤️";
 }
 
+// Generate calendar with weather data
 function generateCalendar(month, year, weatherData) {
   const calendar = document.getElementById("calendar");
-  calendar.innerHTML = "";  // clear previous
+  calendar.innerHTML = ""; // clear previous
 
   const date = new Date(year, month);
   const monthName = date.toLocaleString("default", { month: "long" });
@@ -32,7 +36,7 @@ function generateCalendar(month, year, weatherData) {
   table.style.width = "100%";
   table.style.borderCollapse = "collapse";
 
-  // Header row with month and year
+  // Header row with month + year
   const headerRow = document.createElement("tr");
   const headerCell = document.createElement("th");
   headerCell.colSpan = 7;
@@ -43,7 +47,7 @@ function generateCalendar(month, year, weatherData) {
   headerRow.appendChild(headerCell);
   table.appendChild(headerRow);
 
-  // Days of the week header
+  // Days of week header
   const daysRow = document.createElement("tr");
   ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach(day => {
     const th = document.createElement("th");
@@ -57,7 +61,7 @@ function generateCalendar(month, year, weatherData) {
   let firstDay = new Date(year, month, 1).getDay();
   let dateCounter = 1;
 
-  // 6 weeks to cover all days in month and empty slots
+  // Fill weeks
   for (let i = 0; i < 6; i++) {
     const row = document.createElement("tr");
     for (let j = 0; j < 7; j++) {
@@ -83,13 +87,51 @@ function generateCalendar(month, year, weatherData) {
   calendar.appendChild(table);
 }
 
+// Change calendar month
 function changeMonth(offset) {
   currentDate.setMonth(currentDate.getMonth() + offset);
-  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-  const mockWeatherData = getMockWeatherData(daysInMonth);
-  generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), mockWeatherData);
+  fetchDailyForecast(lastCity || "London", 30); // reload forecast for current city
 }
 
+// 🌤️ Fetch 7-30 day daily forecast
+async function fetchDailyForecast(city, days = 7) {
+  const url = `https://api.openweathermap.org/data/2.5/forecast/daily?q=${city}&cnt=${days}&appid=${apiKey}&units=metric`;
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.cod !== "200") throw new Error(data.message);
+
+    displayDailyForecast(data);
+    lastCity = city; // store for month navigation
+  } catch (error) {
+    alert("Error fetching forecast: " + error.message);
+
+    // fallback: mock weather
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+    const mockWeatherData = getMockWeatherData(daysInMonth);
+    generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), mockWeatherData);
+  }
+}
+
+// Convert forecast API data → emoji codes + calendar
+function displayDailyForecast(data) {
+  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+
+  const weatherData = data.list.map(day => {
+    const main = day.weather[0].main.toLowerCase();
+    if (main.includes("clear")) return "clear";
+    if (main.includes("cloud")) return "cloudy";
+    if (main.includes("rain")) return "rain";
+    if (main.includes("snow")) return "snow";
+    if (main.includes("thunder")) return "thunderstorm";
+    if (main.includes("fog") || main.includes("mist") || main.includes("haze")) return "fog";
+    return "partly_cloudy";
+  });
+
+  generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), weatherData.slice(0, daysInMonth));
+}
+
+// ✅ City + Geo search still works for current weather
 async function fetchWeatherByCity(city) {
   const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
   try {
@@ -114,6 +156,7 @@ async function fetchWeatherByCoordinates(lat, lon) {
   }
 }
 
+// Render current weather info
 function displayWeather(data) {
   const weatherBox = document.getElementById("weatherBox");
   if (!weatherBox) {
@@ -134,16 +177,25 @@ function displayWeather(data) {
   `;
 }
 
-// Event listeners for search and geo button
+// Store last searched city for calendar refresh
+let lastCity = null;
+
+// 🎯 Event listeners
 document.getElementById("searchBtn").addEventListener("click", () => {
   const city = document.getElementById("searchInput").value.trim();
-  if (city) fetchWeatherByCity(city);
+  if (city) {
+    fetchWeatherByCity(city);
+    fetchDailyForecast(city, 30);
+  }
 });
 
 document.getElementById("searchInput").addEventListener("keyup", (e) => {
   if (e.key === "Enter") {
     const city = e.target.value.trim();
-    if (city) fetchWeatherByCity(city);
+    if (city) {
+      fetchWeatherByCity(city);
+      fetchDailyForecast(city, 30);
+    }
   }
 });
 
@@ -161,7 +213,7 @@ document.getElementById("geoWeatherBtn").addEventListener("click", () => {
   }
 });
 
-// Initial render of calendar with mock weather
+// Initial render (fallback mock weather until user searches)
 const daysInCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
 const initialWeatherData = getMockWeatherData(daysInCurrentMonth);
 generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), initialWeatherData);
