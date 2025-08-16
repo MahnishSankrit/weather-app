@@ -1,4 +1,4 @@
-e51b0bd89d04301611065df990a6c28f this is the api key for /forcast/daily , i want to add in this weather.js 
+// e51b0bd89d04301611065df990a6c28f this is the api key for /forcast/daily , i want to add in this weather.js 
 const apiKey = '898910c4440a2a972464c27c2c78bd04';
 let currentDate = new Date();
 
@@ -166,3 +166,4 @@ document.getElementById("geoWeatherBtn").addEventListener("click", () => {
 const daysInCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
 const initialWeatherData = getMockWeatherData(daysInCurrentMonth);
 generateCalendar(currentDate.getMonth(), currentDate.getFullYear(), initialWeatherData);
+
