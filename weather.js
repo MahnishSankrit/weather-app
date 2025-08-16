@@ -1,5 +1,5 @@
 // ✅ Updated API key
-const apiKey = 'e51b0bd89d04301611065df990a6c28f';
+const apiKey = 'caebfd7bda53642c0fcb111c6fecc6b4';
 let currentDate = new Date();
 let lastCoords = null; // store last coords for month navigation
 
